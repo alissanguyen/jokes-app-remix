@@ -1,5 +1,14 @@
-import type { LinksFunction } from "@remix-run/node";
-import { Links, LiveReload, Outlet, useCatch } from "@remix-run/react";
+import type {
+  LinksFunction,
+  MetaFunction,
+} from "@remix-run/node";
+import {
+  Links,
+  LiveReload,
+  Meta,
+  Outlet,
+  useCatch,
+} from "@remix-run/react";
 
 import globalStylesUrl from "./styles/global.css";
 import globalMediumStylesUrl from "./styles/global-medium.css";
@@ -7,26 +16,38 @@ import globalLargeStylesUrl from "./styles/global-large.css";
 
 export const links: LinksFunction = () => {
   return [
-    {
-      rel: "stylesheet",
-      href: globalStylesUrl
-    },
+    { rel: "stylesheet", href: globalStylesUrl },
     {
       rel: "stylesheet",
       href: globalMediumStylesUrl,
-      media: "print, (min-width: 640px)"
+      media: "print, (min-width: 640px)",
     },
     {
       rel: "stylesheet",
       href: globalLargeStylesUrl,
-      media: "screen and (min-width: 1024px)"
-    }
+      media: "screen and (min-width: 1024px)",
+    },
   ];
+};
+
+export const meta: MetaFunction = () => {
+  const description = `Learn Remix and laugh at the same time!`;
+  return {
+    charset: "utf-8",
+    description,
+    keywords: "Remix,jokes",
+    "twitter:image": "https://remix-jokes.lol/social.png",
+    "twitter:card": "summary_large_image",
+    "twitter:creator": "@remix_run",
+    "twitter:site": "@remix_run",
+    "twitter:title": "Remix Jokes",
+    "twitter:description": description,
+  };
 };
 
 function Document({
   children,
-  title = `Remix: So great, it's funny!`
+  title = `Remix: So great, it's funny!`,
 }: {
   children: React.ReactNode;
   title?: string;
@@ -34,7 +55,7 @@ function Document({
   return (
     <html lang="en">
       <head>
-        <meta charSet="utf-8" />
+        <Meta />
         <title>{title}</title>
         <Links />
       </head>
@@ -54,12 +75,13 @@ export default function App() {
   );
 }
 
-//Just as a last resort fallback.
 export function CatchBoundary() {
   const caught = useCatch();
 
   return (
-    <Document title={`${caught.status} ${caught.statusText}`}>
+    <Document
+      title={`${caught.status} ${caught.statusText}`}
+    >
       <div className="error-container">
         <h1>
           {caught.status} {caught.statusText}
