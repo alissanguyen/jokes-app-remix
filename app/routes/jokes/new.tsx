@@ -1,8 +1,29 @@
-import type { ActionFunction } from "@remix-run/node";
+import type {
+  ActionFunction,
+  LoaderFunction,
+} from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { useActionData } from "@remix-run/react";
+import {
+  useActionData,
+  useCatch,
+  Link,
+} from "@remix-run/react";
 
 import { db } from "~/utils/db.server";
+import {
+  requireUserId,
+  getUserId,
+} from "~/utils/session.server";
+
+export const loader: LoaderFunction = async ({
+  request,
+}) => {
+  const userId = await getUserId(request);
+  if (!userId) {
+    throw new Response("Unauthorized", { status: 401 });
+  }
+  return json({});
+};
 
 function validateJokeContent(content: string) {
   if (content.length < 10) {
@@ -34,6 +55,7 @@ const badRequest = (data: ActionData) =>
 export const action: ActionFunction = async ({
   request,
 }) => {
+  const userId = await requireUserId(request);
   const form = await request.formData();
   const name = form.get("name");
   const content = form.get("content");
@@ -55,7 +77,9 @@ export const action: ActionFunction = async ({
     return badRequest({ fieldErrors, fields });
   }
 
-  const joke = await db.joke.create({ data: fields });
+  const joke = await db.joke.create({
+    data: { ...fields, jokesterId: userId },
+  });
   return redirect(`/jokes/${joke.id}`);
 };
 
@@ -135,6 +159,34 @@ export default function NewJokeRoute() {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/**
+ * When a user tries to go to this page without being authenticated (401). 
+ * Right now they'll just get redirected to the login if they try to submit 
+ * it without authenticating. That would be super annoying to spend time 
+ * writing a joke only to get redirected. Rather than inexplicably redirecting 
+ * them, we could render a message that says they need to authenticate first.
+ */
+export function CatchBoundary() {
+  const caught = useCatch();
+
+  if (caught.status === 401) {
+    return (
+      <div className="error-container">
+        <p>You must be logged in to create a joke.</p>
+        <Link to="/login">Login</Link>
+      </div>
+    );
+  }
+}
+
+export function ErrorBoundary() {
+  return (
+    <div className="error-container">
+      Something unexpected went wrong. Sorry about that.
     </div>
   );
 }
