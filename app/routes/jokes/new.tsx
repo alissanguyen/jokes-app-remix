@@ -2,14 +2,16 @@ import type {
   ActionFunction,
   LoaderFunction,
 } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
+import { redirect, json } from "@remix-run/node";
 import {
+  Form,
+  Link,
   useActionData,
   useCatch,
-  Link,
-  Form,
+  useTransition,
 } from "@remix-run/react";
 
+import { JokeDisplay } from "~/components/joke";
 import { db } from "~/utils/db.server";
 import {
   requireUserId,
@@ -86,6 +88,27 @@ export const action: ActionFunction = async ({
 
 export default function NewJokeRoute() {
   const actionData = useActionData<ActionData>();
+  const transition = useTransition();
+
+  if (transition.submission) {
+    const name = transition.submission.formData.get("name");
+    const content =
+      transition.submission.formData.get("content");
+    if (
+      typeof name === "string" &&
+      typeof content === "string" &&
+      !validateJokeContent(content) &&
+      !validateJokeName(name)
+    ) {
+      return (
+        <JokeDisplay
+          joke={{ name, content }}
+          isOwner={true}
+          canDelete={false}
+        />
+      );
+    }
+  }
 
   return (
     <div>
@@ -164,13 +187,6 @@ export default function NewJokeRoute() {
   );
 }
 
-/**
- * When a user tries to go to this page without being authenticated (401). 
- * Right now they'll just get redirected to the login if they try to submit 
- * it without authenticating. That would be super annoying to spend time 
- * writing a joke only to get redirected. Rather than inexplicably redirecting 
- * them, we could render a message that says they need to authenticate first.
- */
 export function CatchBoundary() {
   const caught = useCatch();
 
@@ -184,7 +200,9 @@ export function CatchBoundary() {
   }
 }
 
-export function ErrorBoundary() {
+export function ErrorBoundary({ error }: { error: Error }) {
+  console.error(error);
+
   return (
     <div className="error-container">
       Something unexpected went wrong. Sorry about that.
